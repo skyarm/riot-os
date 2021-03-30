@@ -1,0 +1,5 @@
+/**
+@defgroup    boards_beariot-l431rc STM32 BearPi-L431RC
+@ingroup     boards_common_stm32
+@brief       Support for the STM32 BearPi-L431RC
+ */

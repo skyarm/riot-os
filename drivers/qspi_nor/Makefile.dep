@@ -1,0 +1,2 @@
+USEMODULE += qspi
+USEMODULE += mtd
