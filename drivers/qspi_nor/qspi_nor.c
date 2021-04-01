@@ -103,7 +103,7 @@ static void _cmd_address_read(qspi_nor_t *dev, uint8_t opcode,
         (void *)dev, (unsigned int)opcode, addr, dest, count);
 
   dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_1lines);
-  dev->mode = qspi_mode_set_dcyc(dev->mode, _opcode_dcycs(dev, opcode));
+  dev->mode = qspi_mode_set_dcycs(dev->mode, _opcode_dcycs(dev, opcode));
   if (dest && count) {
     dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
   } else {
@@ -135,7 +135,7 @@ static void _cmd_address_write(qspi_nor_t *dev, uint8_t opcode,
         (void *)dev, (unsigned int)opcode, addr, src, count);
 
   dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_1lines);
-  dev->mode = qspi_mode_set_dcyc(dev->mode, _opcode_dcycs(dev, opcode));
+  dev->mode = qspi_mode_set_dcycs(dev->mode, _opcode_dcycs(dev, opcode));
   if (src && count) {
     dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
   } else {
@@ -164,7 +164,7 @@ static void _cmd_read(qspi_nor_t *dev, uint8_t opcode, void *dest,
         (unsigned int)opcode, dest, count);
 
   dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines); /*no address*/
-  dev->mode = qspi_mode_set_dcyc(
+  dev->mode = qspi_mode_set_dcycs(
       dev->mode, _opcode_dcycs(dev, opcode)); /*no dummy cycles*/
   if (dest && count) {
     dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
@@ -195,7 +195,7 @@ _cmd_write(qspi_nor_t *dev, uint8_t opcode, const void *src,
         (unsigned int)opcode, src, count);
 
   dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines); /*no address*/
-  dev->mode = qspi_mode_set_dcyc(
+  dev->mode = qspi_mode_set_dcycs(
       dev->mode, _opcode_dcycs(dev, opcode)); /*no dummy cycles*/
   if (src && count) {
     dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
@@ -222,7 +222,7 @@ static void _cmd_only(qspi_nor_t *dev, uint8_t opcode) {
 
   dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines);
   dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_dcyc(dev->mode, _opcode_dcycs(dev, opcode));
+  dev->mode = qspi_mode_set_dcycs(dev->mode, _opcode_dcycs(dev, opcode));
 
   /* Send opcode */
   qspi_command(_get_qspi(dev), dev->mode, opcode, 0, 0, 0);
@@ -407,7 +407,7 @@ static void _init_default_mode(qspi_nor_t *dev) {
   dev->mode = qspi_mode_set_addr_size(dev->mode, dev->params->addr_width);
   dev->mode = qspi_mode_set_abyte_lines(dev->mode, qspi_io_0lines);
   dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_dcyc(dev->mode, 0);
+  dev->mode = qspi_mode_set_dcycs(dev->mode, 0);
 }
 
 static int qspi_nor_init(mtd_dev_t *mtd) {
