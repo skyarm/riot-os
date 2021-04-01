@@ -30,7 +30,7 @@
 
 static mutex_t _qspi_locks[QSPI_NUMOF];
 
-static inline QUADSPI_TypeDef *dev(qspi_t bus) {
+static inline QUADSPI_TypeDef *_dev(qspi_t bus) {
   assert(bus < QSPI_NUMOF);
   return qspi_config[bus].dev;
 }
@@ -43,9 +43,9 @@ void qspi_init(qspi_t bus) {
 
   periph_clk_en(qspi_config[bus].apbbus, qspi_config[bus].rccmask);
   /* Disable QSPI bus */
-  dev(bus)->CR = 0;
+  _dev(bus)->CR = 0;
   /*FIXME: what is the default value of DCR*/
-  dev(bus)->DCR = 0; /* Clear the DMA and SSOE flags */
+  _dev(bus)->DCR = 0; /* Clear the DMA and SSOE flags */
 
   periph_clk_dis(qspi_config[bus].apbbus, qspi_config[bus].rccmask);
 }
@@ -53,7 +53,7 @@ void qspi_init(qspi_t bus) {
 void qspi_deinit(qspi_t bus) {
   assert(bus < QSPI_NUMOF);
   /* Disable QSPI bus */
-  dev(bus)->CR &= ~QUADSPI_CR_EN;
+  _dev(bus)->CR &= ~QUADSPI_CR_EN;
 }
 
 void qspi_init_pins(qspi_t bus) {
@@ -103,7 +103,7 @@ void qspi_init_pins(qspi_t bus) {
 }
 
 #ifdef MODULE_PERIPH_DMA
-static inline bool _use_dma(const qspi_conf_t *conf) {
+static inline bool _use_dma(const qspi_config_t *conf) {
   return conf->dma != DMA_STREAM_UNDEF;
 }
 #endif
@@ -120,11 +120,11 @@ int qspi_acquire(qspi_t bus, qspi_flash_id_t id) {
   periph_clk_en(qspi_config[bus].apbbus, qspi_config[bus].rccmask);
 
   /* Set FIFO Threshold bits */
-  dev(bus)->CR = (dev(bus)->CR & ~QUADSPI_CR_FTHRES) |
+  _dev(bus)->CR = (_dev(bus)->CR & ~QUADSPI_CR_FTHRES) |
                  ((QSPI_INIT_FIFO_THRESHOLD - 1U) << QUADSPI_CR_FTHRES_Pos);
 
   /* Wait till BUSY flag reset */
-  while (dev(bus)->SR & QUADSPI_SR_BUSY)
+  while (_dev(bus)->SR & QUADSPI_SR_BUSY)
     ;
 
   uint32_t flash_id = 0x0U;
@@ -141,21 +141,21 @@ int qspi_acquire(qspi_t bus, qspi_flash_id_t id) {
     dual_mode = QUADSPI_CR_DFM;
     break;
   }
-  dev(bus)->CR = (dev(bus)->CR & ~(QUADSPI_CR_PRESCALER | QUADSPI_CR_SSHIFT |
+  _dev(bus)->CR = (_dev(bus)->CR & ~(QUADSPI_CR_PRESCALER | QUADSPI_CR_SSHIFT |
                                    QUADSPI_CR_FSEL | QUADSPI_CR_DFM)) |
                  ((QSPI_INIT_CLOCK_PRESCALER << QUADSPI_CR_PRESCALER_Pos) |
                   QSPI_INIT_SAMPLE_SHIFTING | flash_id | dual_mode);
 #else /* QUADSPI_CR_DFM */
-  dev(bus)->CR = dev(bus)->CR & ~(QUADSPI_CR_PRESCALER | QUADSPI_CR_SSHIFT) |
+  _dev(bus)->CR = _dev(bus)->CR & ~(QUADSPI_CR_PRESCALER | QUADSPI_CR_SSHIFT) |
                  ((QSPI_INIT_CLOCK_PRESCALER << QUADSPI_CR_PRESCALER_Pos) |
                   QSPI_INIT_SAMPLE_SHIFTING);
 #endif /* QUADSPI_CR_DFM */
-  dev(bus)->DCR = (dev(bus)->DCR & ~(QUADSPI_DCR_FSIZE | QUADSPI_DCR_CSHT |
+  _dev(bus)->DCR = (_dev(bus)->DCR & ~(QUADSPI_DCR_FSIZE | QUADSPI_DCR_CSHT |
                                      QUADSPI_DCR_CKMODE)) |
                   ((QSPI_INIT_FLASH_SIZE << QUADSPI_DCR_FSIZE_Pos) |
                    QSPI_INIT_CHIP_SELECT_HIGN_TIME | QSPI_INIT_CLOCK_MODE);
   /* enable qspi bus */
-  dev(bus)->CR |= QUADSPI_CR_EN;
+  _dev(bus)->CR |= QUADSPI_CR_EN;
 
   return 0;
 }
@@ -163,9 +163,9 @@ int qspi_acquire(qspi_t bus, qspi_flash_id_t id) {
 void qspi_release(qspi_t bus) {
   assert(bus < QSPI_NUMOF);
   /* Disable QSPI bus */
-  dev(bus)->CR = 0;
+  _dev(bus)->CR = 0;
   /*FIXME: what is the default value of DCR*/
-  dev(bus)->DCR = 0; /* Clear all the flags */
+  _dev(bus)->DCR = 0; /* Clear all the flags */
   /* disable device */
   periph_clk_dis(qspi_config[bus].apbbus, qspi_config[bus].rccmask);
 #ifdef STM32_PM_STOP
@@ -185,30 +185,30 @@ void qspi_command(qspi_t bus, uint32_t mode, uint8_t cmd, uint32_t addr,
       (mode & ~QUADSPI_CCR_INSTRUCTION) | (cmd << QUADSPI_CCR_INSTRUCTION_Pos);
 
   /* Wait till BUSY flag reset */
-  while (dev(bus)->SR & QUADSPI_SR_BUSY)
+  while (_dev(bus)->SR & QUADSPI_SR_BUSY)
     ;
   /* Data need to be transmit. */
   if (mode & QUADSPI_CCR_DMODE) {
     /* set Data Length register */
-    dev(bus)->DLR = len - 1U;
+    _dev(bus)->DLR = len - 1U;
   }
   /* Alter Bytes need to be transmit. */
   if (mode & QUADSPI_CCR_ABMODE) {
     /* set Alter Bytes register */
-    dev(bus)->ABR = abytes;
+    _dev(bus)->ABR = abytes;
   }
 
   /* Address need to be transmit. */
   if (mode & QUADSPI_CCR_ADMODE) {
     /*---- Command with instruction, address and alternate bytes ----*/
     /* CCR register with all communications parameters */
-    dev(bus)->CCR = mode;
+    _dev(bus)->CCR = mode;
     /* AR register with address value */
-    dev(bus)->AR = addr;
+    _dev(bus)->AR = addr;
   } else {
     /*---- Command with instruction and alternate bytes ----*/
     /* CCR register with all communications parameters */
-    dev(bus)->CCR = mode;
+    _dev(bus)->CCR = mode;
   }
   /* No data to transmit. */
   if ((mode & QUADSPI_CCR_DMODE) == 0) {
@@ -216,10 +216,10 @@ void qspi_command(qspi_t bus, uint32_t mode, uint8_t cmd, uint32_t addr,
        configuration is done so wait until TC flag is set to go back in idle
        state
     */
-    while ((dev(bus)->SR & QUADSPI_SR_TCF) == 0)
+    while ((_dev(bus)->SR & QUADSPI_SR_TCF) == 0)
       ;
     /* Clear Transfer Complete bit */
-    dev(bus)->FCR = QUADSPI_SR_TCF;
+    _dev(bus)->FCR = QUADSPI_SR_TCF;
   }
 }
 #if (defined(STM32L471xx) || defined(STM32L475xx) || defined(STM32L476xx) ||   \
@@ -231,39 +231,39 @@ static void _transfer_abort(qspi_t bus) { assert(bus < QSPI_NUMOF); }
 static void _send_bytes_dma(qspi_t bus, void *data, size_t count) {
   dma_acquire(qspi_config[bus].dma);
   /* Enable QSPI DMA*/
-  dev(bus)->CR |= QUADSPI_CR_DMAEN;
+  _dev(bus)->CR |= QUADSPI_CR_DMAEN;
   dma_transfer(qspi_config[bus].dma, qspi_config[bus].dma_chan, data,
-               (uint32_t *)&(dev(bus)->DR), count, DMA_MEM_TO_PERIPH,
+               (uint32_t *)&(_dev(bus)->DR), count, DMA_MEM_TO_PERIPH,
                DMA_DATA_WIDTH_BYTE | DMA_INC_SRC_ADDR);
   /* Wait for TCF flags is set */
-  while ((dev(bus)->SR & QUADSPI_SR_TCF) == 0)
+  while ((_dev(bus)->SR & QUADSPI_SR_TCF) == 0)
     ;
   /* Wait for busy flag is clear */
-  while (dev(bus)->SR & QUADSPI_SR_BUSY)
+  while (_dev(bus)->SR & QUADSPI_SR_BUSY)
     ;
   /* Clear TCF flag */
-  dev(bus)->FCR = QUADSPI_SR_TCF;
+  _dev(bus)->FCR = QUADSPI_SR_TCF;
   /* Disable QSPI DMA*/
-  dev(bus)->CR &= ~QUADSPI_CR_DMAEN;
+  _dev(bus)->CR &= ~QUADSPI_CR_DMAEN;
   dma_release(qspi_config[bus].dma);
 }
 #endif /* MODULE_PERIPH_DMA */
 
 static void _send_bytes(qspi_t bus, const void *data, size_t count) {
-  volatile uint8_t *DR = (volatile uint8_t *)&(dev(bus)->DR);
+  volatile uint8_t *DR = (volatile uint8_t *)&(_dev(bus)->DR);
   for (unsigned i = 0; i < count; i++) {
     /* Wait until FT flag is set to send data */
-    while ((dev(bus)->SR & QUADSPI_SR_FTF) == 0)
+    while ((_dev(bus)->SR & QUADSPI_SR_FTF) == 0)
       ;
     *DR = ((const uint8_t *)data)[i];
   }
 
   /* Wait until TC flag is set to go back in idle state */
-  while ((dev(bus)->SR & QUADSPI_SR_TCF) == 0)
+  while ((_dev(bus)->SR & QUADSPI_SR_TCF) == 0)
     ;
 
   /* Clear Transfer Complete bit */
-  dev(bus)->FCR = QUADSPI_SR_TCF;
+  _dev(bus)->FCR = QUADSPI_SR_TCF;
 
 #if (defined(STM32L471xx) || defined(STM32L475xx) || defined(STM32L476xx) ||   \
      defined(STM32L485xx) || defined(STM32L486xx))
@@ -278,10 +278,10 @@ void qspi_send_bytes(qspi_t bus, const void *data) {
   assert(data);
 
   /* Configure QSPI: CCR register with functional as indirect write */
-  dev(bus)->CCR &= ~QUADSPI_CCR_FMODE;
+  _dev(bus)->CCR &= ~QUADSPI_CCR_FMODE;
 
   /* Get data length from DLR register */
-  const uint32_t count = dev(bus)->DLR + 1;
+  const uint32_t count = _dev(bus)->DLR + 1;
 
 #ifdef MODULE_PERIPH_DMA
   if (_use_dma(&qspi_config[bus])) {
@@ -302,39 +302,39 @@ void qspi_send_bytes(qspi_t bus, const void *data) {
 static void _recv_bytes_dma(qspi_t bus, void *data, size_t count) {
   dma_acquire(qspi_config[bus].dma);
   /* Enable QSPI DMA*/
-  dev(bus)->CR |= QUADSPI_CR_DMAEN;
+  _dev(bus)->CR |= QUADSPI_CR_DMAEN;
   dma_transfer(qspi_config[bus].dma, qspi_config[bus].dma_chan,
-               (uint32_t *)&(dev(bus)->DR), data, count, DMA_PERIPH_TO_MEM,
+               (uint32_t *)&(_dev(bus)->DR), data, count, DMA_PERIPH_TO_MEM,
                DMA_DATA_WIDTH_BYTE | DMA_INC_DST_ADDR);
   /* Wait for TCF flags is set */
-  while ((dev(bus)->SR & QUADSPI_SR_TCF) == 0)
+  while ((_dev(bus)->SR & QUADSPI_SR_TCF) == 0)
     ;
   /* Wait for busy flag is clear */
-  while (dev(bus)->SR & QUADSPI_SR_BUSY)
+  while (_dev(bus)->SR & QUADSPI_SR_BUSY)
     ;
   /* Clear TFC and FTF flags */
-  dev(bus)->FCR = QUADSPI_SR_TCF | QUADSPI_SR_FTF;
+  _dev(bus)->FCR = QUADSPI_SR_TCF | QUADSPI_SR_FTF;
   /* Disable QSPI DMA*/
-  dev(bus)->CR &= ~QUADSPI_CR_DMAEN;
+  _dev(bus)->CR &= ~QUADSPI_CR_DMAEN;
   dma_release(qspi_config[bus].dma);
 }
 #endif /* MODULE_PERIPH_DMA */
 
 static void _recv_bytes(qspi_t bus, void *data, size_t count) {
-  volatile uint8_t *DR = (volatile uint8_t *)&(dev(bus)->DR);
+  volatile uint8_t *DR = (volatile uint8_t *)&(_dev(bus)->DR);
   for (unsigned i = 0; i < count; i++) {
     /* Wait until FT or TC flag is set to read received data */
-    while ((dev(bus)->SR & QUADSPI_SR_TCF) == 0 &&
-           (dev(bus)->SR & QUADSPI_SR_FTF) == 0)
+    while ((_dev(bus)->SR & QUADSPI_SR_TCF) == 0 &&
+           (_dev(bus)->SR & QUADSPI_SR_FTF) == 0)
       ;
     ((uint8_t *)data)[i] = *DR;
   }
 
   /* Wait until TC flag is set to read received data */
-  while ((dev(bus)->SR & QUADSPI_SR_TCF) == 0)
+  while ((_dev(bus)->SR & QUADSPI_SR_TCF) == 0)
     ;
   /* Clear Transfer Complete Flags bit */
-  dev(bus)->FCR = QUADSPI_SR_TCF;
+  _dev(bus)->FCR = QUADSPI_SR_TCF;
 
 #if (defined(STM32L471xx) || defined(STM32L475xx) || defined(STM32L476xx) ||   \
      defined(STM32L485xx) || defined(STM32L486xx))
@@ -347,15 +347,15 @@ static void _recv_bytes(qspi_t bus, void *data, size_t count) {
 void qspi_recv_bytes(qspi_t bus, void *data) {
   assert(bus < QSPI_NUMOF);
   assert(data);
-  uint32_t ar = dev(bus)->AR;
+  uint32_t ar = _dev(bus)->AR;
 
-  dev(bus)->CCR = (dev(bus)->CCR & ~QUADSPI_CCR_FMODE) | QUADSPI_CCR_FMODE_0;
-  const uint32_t count = dev(bus)->DLR + 1;
+  _dev(bus)->CCR = (_dev(bus)->CCR & ~QUADSPI_CCR_FMODE) | QUADSPI_CCR_FMODE_0;
+  const uint32_t count = _dev(bus)->DLR + 1;
   /*
     Start the transfer by re-writing the address in AR register
     Receiving will not work if don't do this!!!
   */
-  dev(bus)->AR = ar;
+  _dev(bus)->AR = ar;
 
 #ifdef MODULE_PERIPH_DMA
   if (_use_dma(&qspi_config[bus])) {

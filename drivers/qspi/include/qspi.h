@@ -79,9 +79,17 @@ typedef struct {
   dma_t dma;        /**< Logical DMA stream used for TX and RX */
   uint8_t dma_chan; /**< DMA channel used for TX and RX */
 #endif
-} qspi_conf_t;
+/*
+  uint8_t fifo_threshold;
+  uint8_t clock_prescaler;
+  bool clock_cycle_shift;
+  uint32_t flash_size;
+  uint8_t chip_select_hign_time;
+  bool clock_mode_high;
+*/
+} qspi_config_t;
 
-extern const qspi_conf_t qspi_config[];
+extern const qspi_config_t qspi_config[];
 
 #ifndef QSPI_NUMOF
 #define QSPI_NUMOF 1

@@ -47,7 +47,7 @@ static inline void _init_button_pins(void) {
                 (void *)0);
 }
 
-const qspi_conf_t qspi_config[] = {{
+const qspi_config_t qspi_config[] = {{
     .dev = QUADSPI,
     .cs_pin = GPIO_PIN(PORT_B, 11),
     .cs_af = GPIO_AF10,
