@@ -1,0 +1,28 @@
+# Copyright (c) 2020 HAW Hamburg
+#
+# This file is subject to the terms and conditions of the GNU Lesser
+# General Public License v2.1. See the file LICENSE in the top level
+# directory for more details.
+#
+
+config MODULE_QSPI
+    bool "QSPI driver"
+    depends on HAS_PERIPH_GPIO
+    depends on TEST_KCONFIG
+    select MODULE_PERIPH_GPIO
+
+menuconfig KCONFIG_USEMODULE_QSPI
+    bool "Configure QSPI driver"
+    depends on USEMODULE_QSPI
+    help
+        Configure the QSPI using Kconfig.
+
+if KCONFIG_USEMODULE_QSPI
+
+config QSPI_DMATRANS_MINLEN
+    int "QSPI DMA transfer min length"
+    default 4
+    range 1 32
+    help
+        The min length via DMA transfer, Otherwise transfering data don't via DMA, 
+        Using normal mode.
