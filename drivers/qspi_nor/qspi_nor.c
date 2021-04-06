@@ -102,16 +102,17 @@ static void _cmd_address_read(qspi_nor_t *dev, uint8_t opcode,
   TRACE("_cmd_address_read: %p, %02x, (%06" PRIx32 "), %p, %" PRIu32 "\n",
         (void *)dev, (unsigned int)opcode, addr, dest, count);
 
-  dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_1lines);
-  dev->mode = qspi_mode_set_dcycs(dev->mode, _opcode_dcycs(dev, opcode));
+  dev->cmd = qspi_cmd_set_inst(dev->cmd, opcode);
+  dev->cmd = qspi_cmd_set_addr_lines(dev->cmd, qspi_io_1lines);
+  dev->cmd = qspi_cmd_set_dcycs(dev->cmd, _opcode_dcycs(dev, opcode));
   if (dest && count) {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_1lines);
   } else {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_0lines);
   }
 
   /* Send opcode followed by address */
-  qspi_command(_get_qspi(dev), dev->mode, opcode, addr, 0, count);
+  qspi_command(_get_qspi(dev), dev->cmd, addr, 0, count);
   if (dest && count) {
     qspi_recv_bytes(_get_qspi(dev), dest);
   }
@@ -134,16 +135,17 @@ static void _cmd_address_write(qspi_nor_t *dev, uint8_t opcode,
   TRACE("_cmd_address_write: %p, %02x, (%06" PRIx32 "), %p, %" PRIu32 "\n",
         (void *)dev, (unsigned int)opcode, addr, src, count);
 
-  dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_1lines);
-  dev->mode = qspi_mode_set_dcycs(dev->mode, _opcode_dcycs(dev, opcode));
+  dev->cmd = qspi_cmd_set_inst(dev->cmd, opcode);
+  dev->cmd = qspi_cmd_set_addr_lines(dev->cmd, qspi_io_1lines);
+  dev->cmd = qspi_cmd_set_dcycs(dev->cmd, _opcode_dcycs(dev, opcode));
   if (src && count) {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_1lines);
   } else {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_0lines);
   }
 
   /* Send opcode followed by address */
-  qspi_command(_get_qspi(dev), dev->mode, opcode, addr, 0, count);
+  qspi_command(_get_qspi(dev), dev->cmd, addr, 0, count);
   if (src && count) {
     qspi_send_bytes(_get_qspi(dev), src);
   }
@@ -163,17 +165,18 @@ static void _cmd_read(qspi_nor_t *dev, uint8_t opcode, void *dest,
   TRACE("_cmd_read: %p, %02x, %p, %" PRIu32 "\n", (void *)dev,
         (unsigned int)opcode, dest, count);
 
-  dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines); /*no address*/
-  dev->mode = qspi_mode_set_dcycs(
-      dev->mode, _opcode_dcycs(dev, opcode)); /*no dummy cycles*/
+  dev->cmd = qspi_cmd_set_inst(dev->cmd, opcode);
+  dev->cmd = qspi_cmd_set_addr_lines(dev->cmd, qspi_io_0lines); /*no address*/
+  dev->cmd = qspi_cmd_set_dcycs(
+      dev->cmd, _opcode_dcycs(dev, opcode)); /*no dummy cycles*/
   if (dest && count) {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_1lines);
   } else {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_0lines);
   }
 
   /* Send opcode */
-  qspi_command(_get_qspi(dev), dev->mode, opcode, 0, 0, count);
+  qspi_command(_get_qspi(dev), dev->cmd, 0, 0, count);
   if (dest && count) {
     qspi_recv_bytes(_get_qspi(dev), dest);
   }
@@ -194,17 +197,18 @@ _cmd_write(qspi_nor_t *dev, uint8_t opcode, const void *src,
   TRACE("_cmd_write: %p, %02x, %p, %" PRIu32 "\n", (void *)dev,
         (unsigned int)opcode, src, count);
 
-  dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines); /*no address*/
-  dev->mode = qspi_mode_set_dcycs(
-      dev->mode, _opcode_dcycs(dev, opcode)); /*no dummy cycles*/
+  dev->cmd = qspi_cmd_set_inst(dev->cmd, opcode);
+  dev->cmd = qspi_cmd_set_addr_lines(dev->cmd, qspi_io_0lines); /*no address*/
+  dev->cmd = qspi_cmd_set_dcycs(
+      dev->cmd, _opcode_dcycs(dev, opcode)); /*no dummy cycles*/
   if (src && count) {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_1lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_1lines);
   } else {
-    dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
+    dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_0lines);
   }
 
   /* Send opcode */
-  qspi_command(_get_qspi(dev), dev->mode, opcode, 0, 0, count);
+  qspi_command(_get_qspi(dev), dev->cmd, 0, 0, count);
   if (src && count) {
     qspi_send_bytes(_get_qspi(dev), src);
   }
@@ -220,12 +224,13 @@ _cmd_write(qspi_nor_t *dev, uint8_t opcode, const void *src,
 static void _cmd_only(qspi_nor_t *dev, uint8_t opcode) {
   TRACE("mtd_qspi_cmd: %p, %02x\n", (void *)dev, (unsigned int)opcode);
 
-  dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_dcycs(dev->mode, _opcode_dcycs(dev, opcode));
+  dev->cmd = qspi_cmd_set_inst(dev->cmd, opcode);
+  dev->cmd = qspi_cmd_set_addr_lines(dev->cmd, qspi_io_0lines);
+  dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_0lines);
+  dev->cmd = qspi_cmd_set_dcycs(dev->cmd, _opcode_dcycs(dev, opcode));
 
   /* Send opcode */
-  qspi_command(_get_qspi(dev), dev->mode, opcode, 0, 0, 0);
+  qspi_command(_get_qspi(dev), dev->cmd, 0, 0, 0);
 }
 
 static bool qspi_nor_manuf_match(const jedec_id_t *id, jedec_manuf_t manuf) {
@@ -397,17 +402,17 @@ static int qspi_nor_power(mtd_dev_t *mtd, enum mtd_power_state power) {
 }
 
 static void _init_default_mode(qspi_nor_t *dev) {
-  dev->mode = qspi_mode_init();
-  dev->mode = qspi_mode_set_cmd_always(dev->mode, true);
-  dev->mode = qspi_mode_set_ddr_mode(dev->mode, false);
-  dev->mode = qspi_mode_set_ddr_hhc(dev->mode, false);
+  dev->cmd = qspi_cmd_init();
+  dev->cmd = qspi_cmd_set_cmd_sioo(dev->cmd, true);
+  dev->cmd = qspi_cmd_set_ddr_mode(dev->cmd, false);
+  dev->cmd = qspi_cmd_set_ddr_hhc(dev->cmd, false);
 
-  dev->mode = qspi_mode_set_cmd_lines(dev->mode, qspi_io_1lines);
-  dev->mode = qspi_mode_set_addr_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_addr_size(dev->mode, dev->params->addr_width);
-  dev->mode = qspi_mode_set_abyte_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_data_lines(dev->mode, qspi_io_0lines);
-  dev->mode = qspi_mode_set_dcycs(dev->mode, 0);
+  dev->cmd = qspi_cmd_set_cmd_lines(dev->cmd, qspi_io_1lines);
+  dev->cmd = qspi_cmd_set_addr_lines(dev->cmd, qspi_io_0lines);
+  dev->cmd = qspi_cmd_set_addr_size(dev->cmd, dev->params->addr_width);
+  dev->cmd = qspi_cmd_set_abyte_lines(dev->cmd, qspi_io_0lines);
+  dev->cmd = qspi_cmd_set_data_lines(dev->cmd, qspi_io_0lines);
+  dev->cmd = qspi_cmd_set_dcycs(dev->cmd, 0);
 }
 
 static int qspi_nor_init(mtd_dev_t *mtd) {

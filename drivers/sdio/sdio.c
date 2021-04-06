@@ -28,20 +28,29 @@
 #define ENABLE_DEBUG 0
 #include "debug.h"
 
-typedef enum
-{
-    SDIO_1B_BLOCK    =  1,
-    SDIO_2B_BLOCK    =  2,
-    SDIO_4B_BLOCK    =  4,
-    SDIO_8B_BLOCK    =  8,
-    SDIO_16B_BLOCK   =  16,
-    SDIO_32B_BLOCK   =  32,
-    SDIO_64B_BLOCK   =  64,
-    SDIO_128B_BLOCK  =  128,
-    SDIO_256B_BLOCK  =  256,
-    SDIO_512B_BLOCK  =  512,
-    SDIO_1024B_BLOCK = 1024,
-    SDIO_2048B_BLOCK = 2048
+#ifdef CPU_FAM_STM32L4
+#define SDIO_STA_TXACT SDMMC_STA_TXACT
+#define SDIO_STA_RXACT SDMMC_STA_RXACT
+#define SDIO_STA_CCRCFAIL SDMMC_STA_CCRCFAIL
+#define SDIO_STA_DCRCFAIL SDMMC_STA_DCRCFAIL
+#define SDIO_STA_TXUNDERR SDMMC_STA_TXUNDERR
+#define SDIO_STA_RXOVERR SDMMC_STA_RXOVERR
+#define SDIO_STA_CMDSENT SDMMC_STA_CMDSENT
+#endif
+
+typedef enum {
+  SDIO_1B_BLOCK = 1,
+  SDIO_2B_BLOCK = 2,
+  SDIO_4B_BLOCK = 4,
+  SDIO_8B_BLOCK = 8,
+  SDIO_16B_BLOCK = 16,
+  SDIO_32B_BLOCK = 32,
+  SDIO_64B_BLOCK = 64,
+  SDIO_128B_BLOCK = 128,
+  SDIO_256B_BLOCK = 256,
+  SDIO_512B_BLOCK = 512,
+  SDIO_1024B_BLOCK = 1024,
+  SDIO_2048B_BLOCK = 2048
 } sdio_block_size_t;
 
 static mutex_t _sdio_locks[SDIO_NUMOF];
@@ -67,7 +76,7 @@ void sdio_deinit(sdio_t bus) {
   /* Disable SDIO bus */
 }
 
-void qspi_init_pins(sdio_t bus) {
+void sdio_init_pins(sdio_t bus) {
   assert(bus < SDIO_NUMOF);
   assert(sdio_config[bus].cmd_pin != GPIO_UNDEF);
   assert(sdio_config[bus].sclk_pin != GPIO_UNDEF);
@@ -84,7 +93,7 @@ static inline bool _use_dma(const sdio_config_t *conf) {
 }
 #endif
 
-int qspi_acquire(sdio_t bus) {
+int sdio_acquire(sdio_t bus) {
   assert(bus < SDIO_NUMOF);
   /* lock bus */
   mutex_lock(&(_sdio_locks[bus]));
@@ -98,7 +107,7 @@ int qspi_acquire(sdio_t bus) {
   return 0;
 }
 
-void qspi_release(sdio_t bus) {
+void sdio_release(sdio_t bus) {
   assert(bus < SDIO_NUMOF);
 
   /* disable device */
@@ -111,11 +120,12 @@ void qspi_release(sdio_t bus) {
   mutex_unlock(&(_sdio_locks[bus]));
 }
 
-void qspi_command(sdio_t bus, uint32_t mode, uint8_t cmd, uint32_t arg) {
+void sdio_command(sdio_t bus, uint32_t cmd, uint32_t arg) {
   assert(bus < SDIO_NUMOF);
   _dev(bus)->ICR = 0xFFFFFFFF;
   _dev(bus)->ARG = arg;
-  _dev(bus)->CMD = (uint32_t)(cmd | mode);
+  _dev(bus)->CMD = cmd;
+  while ((_dev(bus)->STA & SDIO_STA_CMDSENT) == 0);
 }
 
 #ifdef MODULE_PERIPH_DMA
@@ -126,7 +136,7 @@ static void _send_bytes_dma(sdio_t bus, void *data, size_t count) {
                (uint32_t *)&(_dev(bus)->FIFO), count, DMA_MEM_TO_PERIPH,
                DMA_DATA_WIDTH_BYTE | DMA_INC_SRC_ADDR);
   if ((_dev(bus)->STA & (SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL |
-                        SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR)) != 0) {
+                         SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR)) != 0) {
   }
   /* Wait for STA flags is set */
   while ((_dev(bus)->STA & SDIO_STA_TXACT) != 0)
@@ -154,8 +164,9 @@ static void _send_bytes(sdio_t bus, const void *data, size_t count) {
 void sdio_send_bytes(sdio_t bus, const void *data, size_t count) {
   assert(bus < SDIO_NUMOF);
   assert(data);
-
+  /* Set data timer register to max*/
   _dev(bus)->DTIMER = (uint32_t)0xFFFFFFFF;
+  /* Set data length */
   _dev(bus)->DLEN = count;
   _dev(bus)->DCTRL = 0; /* FIXME: */
 
@@ -182,7 +193,7 @@ static void _recv_bytes_dma(sdio_t bus, void *data, size_t count) {
                (uint32_t *)&(_dev(bus)->FIFO), data, count, DMA_PERIPH_TO_MEM,
                DMA_DATA_WIDTH_BYTE | DMA_INC_DST_ADDR);
   if ((_dev(bus)->STA & (SDIO_STA_CCRCFAIL | SDIO_STA_DCRCFAIL |
-                        SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR)) != 0) {
+                         SDIO_STA_TXUNDERR | SDIO_STA_RXOVERR)) != 0) {
   }
 
   while ((_dev(bus)->STA & SDIO_STA_RXACT) != 0)

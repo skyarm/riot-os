@@ -176,42 +176,38 @@ void qspi_release(qspi_t bus) {
   mutex_unlock(&(_qspi_locks[bus]));
 }
 
-void qspi_command(qspi_t bus, uint32_t mode, uint8_t cmd, uint32_t addr,
+void qspi_command(qspi_t bus, uint32_t cmd, uint32_t addr,
                   uint32_t abytes, uint32_t len) {
   assert(bus < QSPI_NUMOF);
-
-  /* set instruction bits */
-  mode =
-      (mode & ~QUADSPI_CCR_INSTRUCTION) | (cmd << QUADSPI_CCR_INSTRUCTION_Pos);
 
   /* Wait till BUSY flag reset */
   while (_dev(bus)->SR & QUADSPI_SR_BUSY)
     ;
   /* Data need to be transmit. */
-  if (mode & QUADSPI_CCR_DMODE) {
+  if (cmd & QUADSPI_CCR_DMODE) {
     /* set Data Length register */
     _dev(bus)->DLR = len - 1U;
   }
   /* Alter Bytes need to be transmit. */
-  if (mode & QUADSPI_CCR_ABMODE) {
+  if (cmd & QUADSPI_CCR_ABMODE) {
     /* set Alter Bytes register */
     _dev(bus)->ABR = abytes;
   }
 
   /* Address need to be transmit. */
-  if (mode & QUADSPI_CCR_ADMODE) {
+  if (cmd & QUADSPI_CCR_ADMODE) {
     /*---- Command with instruction, address and alternate bytes ----*/
     /* CCR register with all communications parameters */
-    _dev(bus)->CCR = mode;
+    _dev(bus)->CCR = cmd;
     /* AR register with address value */
     _dev(bus)->AR = addr;
   } else {
     /*---- Command with instruction and alternate bytes ----*/
     /* CCR register with all communications parameters */
-    _dev(bus)->CCR = mode;
+    _dev(bus)->CCR = cmd;
   }
   /* No data to transmit. */
-  if ((mode & QUADSPI_CCR_DMODE) == 0) {
+  if ((cmd & QUADSPI_CCR_DMODE) == 0) {
     /* When there is no data phase, the transfer start as soon as the
        configuration is done so wait until TC flag is set to go back in idle
        state

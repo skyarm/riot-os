@@ -286,7 +286,7 @@ void qspi_release(qspi_t bus);
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_init(void) { return 0; }
+static inline uint32_t qspi_cmd_init(void) { return 0; }
 
 /**
  * @brief   Finish an ongoing SPI transaction by releasing the given SPI bus
@@ -296,7 +296,7 @@ static inline uint32_t qspi_mode_init(void) { return 0; }
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_set_cmd_lines(uint32_t mode,
+static inline uint32_t qspi_cmd_set_cmd_lines(uint32_t mode,
                                                qspi_io_lines_t pins) {
   assert(pins != qspi_io_0lines); /* cmd lines must have one line at least*/
   return (mode & ~QUADSPI_CCR_IMODE) | (pins << QUADSPI_CCR_IMODE_Pos);
@@ -310,7 +310,7 @@ static inline uint32_t qspi_mode_set_cmd_lines(uint32_t mode,
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_set_data_lines(uint32_t mode,
+static inline uint32_t qspi_cmd_set_data_lines(uint32_t mode,
                                                 qspi_io_lines_t pins) {
   return (mode & ~QUADSPI_CCR_DMODE) | (pins << QUADSPI_CCR_DMODE_Pos);
 }
@@ -323,7 +323,7 @@ static inline uint32_t qspi_mode_set_data_lines(uint32_t mode,
  *
  * @param[in] bus       SPI device to use
  */
-static inline uint32_t qspi_mode_set_abyte_lines(uint32_t mode,
+static inline uint32_t qspi_cmd_set_abyte_lines(uint32_t mode,
                                                  qspi_io_lines_t pins) {
   return (mode & ~QUADSPI_CCR_ABMODE) | (pins << QUADSPI_CCR_ABMODE_Pos);
 }
@@ -336,7 +336,7 @@ static inline uint32_t qspi_mode_set_abyte_lines(uint32_t mode,
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_set_abyte_size(uint32_t mode, uint8_t size) {
+static inline uint32_t qspi_cmd_set_abyte_size(uint32_t mode, uint8_t size) {
   assert(size >= 1 && size <= 4);
   return (mode & ~QUADSPI_CCR_ABSIZE) | ((size - 1) << QUADSPI_CCR_ABSIZE_Pos);
 }
@@ -349,7 +349,7 @@ static inline uint32_t qspi_mode_set_abyte_size(uint32_t mode, uint8_t size) {
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_set_addr_lines(uint32_t mode,
+static inline uint32_t qspi_cmd_set_addr_lines(uint32_t mode,
                                                 qspi_io_lines_t pins) {
   return (mode & ~QUADSPI_CCR_ADMODE) | (pins << QUADSPI_CCR_ADMODE_Pos);
 }
@@ -363,7 +363,7 @@ static inline uint32_t qspi_mode_set_addr_lines(uint32_t mode,
  * @param[in] mode       mode to be set to.
  * @param[in] size       size to be set to, can be set to 1 - 4
  */
-static inline uint32_t qspi_mode_set_addr_size(uint32_t mode, uint8_t size) {
+static inline uint32_t qspi_cmd_set_addr_size(uint32_t mode, uint8_t size) {
   assert(size >= 1 && size <= 4);
   return (mode & ~QUADSPI_CCR_ADSIZE) | ((size - 1) << QUADSPI_CCR_ADSIZE_Pos);
 }
@@ -376,7 +376,7 @@ static inline uint32_t qspi_mode_set_addr_size(uint32_t mode, uint8_t size) {
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_set_dcycs(uint32_t mode, uint8_t cycles) {
+static inline uint32_t qspi_cmd_set_dcycs(uint32_t mode, uint8_t cycles) {
   assert(cycles < 32);
   return (mode & ~QUADSPI_CCR_DCYC) | (cycles << QUADSPI_CCR_DCYC_Pos);
 }
@@ -389,7 +389,7 @@ static inline uint32_t qspi_mode_set_dcycs(uint32_t mode, uint8_t cycles) {
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t qspi_mode_set_ddr_mode(uint32_t mode, bool ddr) {
+static inline uint32_t qspi_cmd_set_ddr_mode(uint32_t mode, bool ddr) {
   if (ddr) {
     /*!<Double data rate mode enabled*/
     return mode | QUADSPI_CCR_DDRM;
@@ -408,7 +408,7 @@ static inline uint32_t qspi_mode_set_ddr_mode(uint32_t mode, bool ddr) {
  * @param[in] bus       QSPI device to release
  */
 #if defined(QUADSPI_CCR_DHHC)
-static inline uint32_t qspi_mode_set_ddr_hhc(uint32_t mode, bool hhc) {
+static inline uint32_t qspi_cmd_set_ddr_hhc(uint32_t mode, bool hhc) {
   if (hhc) {
     /*!<Delay the data output by one half of system clock in DDR mode*/
     return mode | QUADSPI_CCR_DHHC;
@@ -427,7 +427,7 @@ static inline uint32_t qspi_mode_set_ddr_hhc(uint32_t mode, bool hhc) {
  *
  * @param[in] bus       QSPI device to use
  */
-static inline uint32_t qspi_mode_set_cmd_always(uint32_t mode, bool always) {
+static inline uint32_t qspi_cmd_set_cmd_sioo(uint32_t mode, bool always) {
   if (always) {
     /* Send instruction on every transaction */
     return mode & ~QUADSPI_CCR_SIOO;
@@ -438,6 +438,18 @@ static inline uint32_t qspi_mode_set_cmd_always(uint32_t mode, bool always) {
 }
 
 /**
+ * @brief   Send instruction on every transaction
+ *
+ * After release, the given SPI bus should be fully powered down until acquired
+ * again.
+ *
+ * @param[in] bus       QSPI device to use
+ */
+static inline uint32_t qspi_cmd_set_inst(uint32_t cmd, uint8_t inst) {
+  return (cmd & ~QUADSPI_CCR_INSTRUCTION) | (inst << QUADSPI_CCR_INSTRUCTION_Pos);
+}
+
+/**
  * @brief Send a command to QSPI bus
  *
  * After release, the given SPI bus should be fully powered down until acquired
@@ -445,7 +457,7 @@ static inline uint32_t qspi_mode_set_cmd_always(uint32_t mode, bool always) {
  *
  * @param[in] bus       SPI device to release
  */
-void qspi_command(qspi_t bus, uint32_t mode, uint8_t cmd, uint32_t addr,
+void qspi_command(qspi_t bus, uint32_t cmd, uint32_t addr,
                   uint32_t abytes, uint32_t len);
 
 /**

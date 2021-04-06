@@ -129,9 +129,9 @@ typedef struct {
   /**
    * @brief   bitmask to corresponding qspi DCR register
    *
-   * Computed by qspi_mode_xxxx, no need to touch outside the driver.
+   * Computed by qspi_cmd_xxxx, no need to touch outside the driver.
    */
-  uint32_t mode;
+  uint32_t cmd;
 
   /**
    * @brief   bitmask to corresponding to the page address

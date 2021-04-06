@@ -45,15 +45,6 @@
 extern "C" {
 #endif
 
-#ifdef CPU_FAM_STM32L4
-#define SDIO_STA_TXACT SDMMC_STA_TXACT
-#define SDIO_STA_RXACT SDMMC_STA_RXACT
-#define SDIO_STA_CCRCFAIL SDMMC_STA_CCRCFAIL
-#define SDIO_STA_DCRCFAIL SDMMC_STA_DCRCFAIL
-#define SDIO_STA_TXUNDERR SDMMC_STA_TXUNDERR
-#define SDIO_STA_RXOVERR SDMMC_STA_RXOVERR
-#endif
-
 #ifndef CONFIG_SDIO_DMATRANS_MINLEN
 #define CONFIG_SDIO_DMATRANS_MINLEN (4)
 #endif
@@ -70,6 +61,16 @@ extern "C" {
 
 #ifdef CPU_FAM_STM32L4
 typedef SDMMC_TypeDef SDIO_Typedef;
+#define SDIO_CMD_CMDINDEX SDMMC_CMD_CMDINDEX
+#define SDIO_CMD_WAITRESP SDMMC_CMD_WAITRESP
+#define SDIO_CMD_WAITRESP_Pos SDMMC_CMD_WAITRESP_Pos
+#define SDIO_CMD_WAITINT SDMMC_CMD_WAITINT
+#define SDIO_CMD_WAITINT_Pos SDMMC_CMD_WAITINT_Pos
+#define SDIO_CMD_WAITPEND SDMMC_CMD_WAITPEND
+#define SDIO_CMD_WAITPEND_Pos SDMMC_CMD_WAITPEND_Pos
+#define SDIO_CMD_CPSMEN SDMMC_CMD_CPSMEN
+#define SDIO_CMD_CPSMEN_Pos SDMMC_CMD_CPSMEN_Pos
+#define SDIO_POWER_PWRCTRL SDMMC_POWER_PWRCTRL
 #endif
 
 typedef struct {
@@ -203,7 +204,55 @@ void sdio_release(sdio_t bus);
  *
  * @param[in] bus       SPI device to release
  */
-static inline uint32_t sdio_mode_init(void) { return 0; }
+static inline uint32_t sdio_cmd_init(void) { return 0; }
+
+/**
+ * Specifies the SDMMC command instruction. It must be 0 to 64
+ **/
+static inline uint32_t sdio_cmd_set_inst(uint32_t cmd, uint8_t index) {
+  assert(index <= 64);
+  return (cmd & ~SDIO_CMD_CMDINDEX) | index;
+}
+
+/**
+ *    Specifies the SDMMC response type, This parameter can be a value of:
+ **/
+typedef enum {
+  sdio_cmd_wait_resp_no,
+  sdio_cmd_wait_resp_short,
+  sdio_cmd_wait_resp_long
+} sdio_cmd_wait_resp_t;
+
+static inline uint32_t sdio_cmd_set_wait_resp(uint32_t cmd,
+                                              sdio_cmd_wait_resp_t resp) {
+  return (cmd & ~SDIO_CMD_WAITRESP) | (resp << SDIO_CMD_WAITRESP_Pos);
+}
+
+/**
+ * Specifies whether SDMMC wait for interrupt request is enabled or disabled.
+ * This parameter can be a value of:
+ **/
+static inline uint32_t sdio_cmd_set_wait_int(uint32_t cmd, bool wait) {
+  return (cmd & ~SDIO_CMD_WAITINT) | ((wait ? 1 : 0) << SDIO_CMD_WAITINT_Pos);
+}
+
+/**
+ * Specifies whether SDMMC wait for pend request is enabled or disabled.
+ * This parameter can be a value of:
+ **/
+static inline uint32_t sdio_cmd_set_wait_pend(uint32_t cmd, bool wait) {
+  return (cmd & ~SDIO_CMD_WAITPEND) | ((wait ? 1 : 0) << SDIO_CMD_WAITPEND_Pos);
+}
+
+/**
+ *  Specifies whether SDMMC Command path state machine (CPSM) is enabled or
+ *disabled. This parameter can be a value of
+ * @0   0
+ * @1   SDMMC_CMD_CPSMEN
+ **/
+static inline uint32_t sdio_cmd_set_cpsm(uint32_t cmd, bool enable) {
+  return (cmd & ~SDIO_CMD_CPSMEN) | ((enable ? 1 : 0) << SDIO_CMD_CPSMEN_Pos);
+}
 
 /**
  * @brief   Initial mode to default value
@@ -214,7 +263,7 @@ static inline uint32_t sdio_mode_init(void) { return 0; }
  * @param[in] bus       SPI device to release
  */
 
-void sdio_command(sdio_t bus, uint32_t mode, uint8_t cmd);
+void sdio_command(sdio_t bus, uint32_t cmd, uint32_t arg);
 
 /**
  * @brief Send bytes to QSPI device
@@ -235,7 +284,7 @@ void sdio_send_bytes(sdio_t bus, const void *data, size_t count);
  * @param[in] bus       QSPI device to use
  * @param[in] data      data to send out
  */
-void qspi_recv_bytes(sdio_t bus, void *data, size_t count);
+void sdio_recv_bytes(sdio_t bus, void *data, size_t count);
 
 #ifdef __cplusplus
 }
