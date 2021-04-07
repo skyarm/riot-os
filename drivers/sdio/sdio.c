@@ -122,7 +122,6 @@ void sdio_release(sdio_t bus) {
 
 void sdio_command(sdio_t bus, uint32_t cmd, uint32_t arg) {
   assert(bus < SDIO_NUMOF);
-  _dev(bus)->ICR = 0xFFFFFFFF;
   _dev(bus)->ARG = arg;
   _dev(bus)->CMD = cmd;
   while ((_dev(bus)->STA & SDIO_STA_CMDSENT) == 0);

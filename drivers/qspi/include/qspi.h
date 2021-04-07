@@ -432,7 +432,7 @@ static inline uint32_t qspi_cmd_set_cmd_sioo(uint32_t mode, bool always) {
     /* Send instruction on every transaction */
     return mode & ~QUADSPI_CCR_SIOO;
   } else {
-    /*Send instruction only for the first command */
+    /*Send instruction only on the first command */
     return mode |= QUADSPI_CCR_SIOO;
   }
 }

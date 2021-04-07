@@ -71,6 +71,14 @@ typedef SDMMC_TypeDef SDIO_Typedef;
 #define SDIO_CMD_CPSMEN SDMMC_CMD_CPSMEN
 #define SDIO_CMD_CPSMEN_Pos SDMMC_CMD_CPSMEN_Pos
 #define SDIO_POWER_PWRCTRL SDMMC_POWER_PWRCTRL
+#define SDIO_DCTRL_DBLOCKSIZE SDMMC_DCTRL_DBLOCKSIZE
+#define SDIO_DCTRL_DBLOCKSIZE_Pos SDMMC_DCTRL_DBLOCKSIZE_Pos
+#define SDIO_DCTRL_DTDIR SDMMC_DCTRL_DTDIR
+#define SDIO_DCTRL_DTDIR_Pos SDMMC_DCTRL_DTDIR_Pos
+#define SDIO_DCTRL_DTMODE SDMMC_DCTRL_DTMODE
+#define SDIO_DCTRL_DTMODE_Pos SDMMC_DCTRL_DTMODE_Pos
+#define SDIO_DCTRL_DTEN SDMMC_DCTRL_DTEN
+#define SDIO_DCTRL_DTEN_Pos SDMMC_DCTRL_DTEN_Pos
 #endif
 
 typedef struct {
@@ -195,6 +203,93 @@ int sdio_acquire(sdio_t bus);
  * @param[in] bus       SPI device to release
  */
 void sdio_release(sdio_t bus);
+
+/**
+ * @brief   Initial mode to default value
+ *
+ * After release, the given SPI bus should be fully powered down until acquired
+ * again.
+ *
+ * @param[in] bus       SPI device to release
+ */
+static inline uint32_t sdio_data_init(void) { return 0; }
+
+/**
+ * @brief   Specifies the data block size for block transfer.
+ *
+ * This parameter can be a value of:
+ *
+ * @SDMMC_DATABLOCK_SIZE_1B               ((uint32_t)0x00000000U)
+ * @SDMMC_DATABLOCK_SIZE_2B               SDMMC_DCTRL_DBLOCKSIZE_0
+ * @SDMMC_DATABLOCK_SIZE_4B               SDMMC_DCTRL_DBLOCKSIZE_1
+ * @SDMMC_DATABLOCK_SIZE_8B               (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_1)
+ * @SDMMC_DATABLOCK_SIZE_16B              SDMMC_DCTRL_DBLOCKSIZE_2
+ * @SDMMC_DATABLOCK_SIZE_32B              (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_2)
+ * @SDMMC_DATABLOCK_SIZE_64B              (SDMMC_DCTRL_DBLOCKSIZE_1|SDMMC_DCTRL_DBLOCKSIZE_2)
+ * @SDMMC_DATABLOCK_SIZE_128B             (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_1|SDMMC_DCTRL_DBLOCKSIZE_2)
+ * @SDMMC_DATABLOCK_SIZE_256B             SDMMC_DCTRL_DBLOCKSIZE_3
+ * @SDMMC_DATABLOCK_SIZE_512B             (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_3)
+ * @SDMMC_DATABLOCK_SIZE_1024B            (SDMMC_DCTRL_DBLOCKSIZE_1|SDMMC_DCTRL_DBLOCKSIZE_3)
+ * @SDMMC_DATABLOCK_SIZE_2048B            (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_1|SDMMC_DCTRL_DBLOCKSIZE_3)
+ * @SDMMC_DATABLOCK_SIZE_4096B            (SDMMC_DCTRL_DBLOCKSIZE_2|SDMMC_DCTRL_DBLOCKSIZE_3)
+ * @SDMMC_DATABLOCK_SIZE_8192B            (SDMMC_DCTRL_DBLOCKSIZE_0|SDMMC_DCTRL_DBLOCKSIZE_2|SDMMC_DCTRL_DBLOCKSIZE_3)
+ * @SDMMC_DATABLOCK_SIZE_16384B           (SDMMC_DCTRL_DBLOCKSIZE_1|SDMMC_DCTRL_DBLOCKSIZE_2|SDMMC_DCTRL_DBLOCKSIZE_3)
+ */
+typedef enum {
+  sdio_data_block_size_bit_1,
+  sdio_data_block_size_bit_2,
+  sdio_data_block_size_4bit,
+  sdio_data_block_size_8bit,
+  sdio_data_block_size_16bit,
+  sdio_data_block_size_32bit,
+  sdio_data_block_size_64bit,
+  sdio_data_block_size_128bit,
+  sdio_data_block_size_256bit,
+  sdio_data_block_size_512bit,
+  sdio_data_block_size_1024bit,
+  sdio_data_block_size_2048bit,
+  sdio_data_block_size_40966bit,
+  sdio_data_block_size_8192bit,
+  sdio_data_block_size_16384bit,
+}sdio_data_block_size_t;
+
+static inline uint32_t sdio_data_set_block_size(uint32_t data, sdio_data_block_size_t size) { 
+  return  (data & ~SDIO_DCTRL_DBLOCKSIZE) | (size << SDIO_DCTRL_DBLOCKSIZE_Pos);
+}
+
+/**
+ * Specifies the data transfer direction, whether the transfer is a read or write.
+ * This parameter can be a value of:
+ **/
+typedef enum {
+  sdio_data_set_transfer_to_card,
+  sdio_data_set_transfer_to_sdmmc
+} sdio_data_set_transfer_dir_t;
+
+static inline uint32_t sdio_data_set_transfer_dir(uint32_t data, sdio_data_set_transfer_dir_t dir) {
+  return (data & ~SDIO_DCTRL_DTDIR) | (dir << SDIO_DCTRL_DTDIR_Pos);
+}
+
+/**
+ * Specifies whether data transfer is in stream or block mode.
+ * This parameter can be a value of:
+ **/
+typedef enum {
+  sdio_data_set_transfer_block,
+  sdio_data_set_transfer_stream
+} sdio_data_set_transfer_mode_t;
+
+static inline uint32_t sdio_data_set_transfer_mode(uint32_t data, sdio_data_set_transfer_mode_t mode) {
+  return (data & ~SDIO_DCTRL_DTMODE) | (mode << SDIO_DCTRL_DTMODE_Pos);
+}
+
+/**
+ * Specifies whether SDMMC Data path state machine (DPSM) is enabled or disabled.
+ * This parameter can be a value of:
+ **/
+static inline uint32_t sdio_data_set_dpsm(uint32_t data, bool enable) {
+  return (data & ~SDIO_DCTRL_DTEN) | ((enable ? 1 : 0) << SDIO_DCTRL_DTEN_Pos);
+}
 
 /**
  * @brief   Initial mode to default value
